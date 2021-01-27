@@ -1,0 +1,63 @@
+version: "3"
+services:
+
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile-proxy
+    volumes:
+      - ./envoy.yaml:/etc/envoy.yaml
+    networks:
+      - ratelimit-network
+    expose:
+      - "9000"
+      - "10000"
+    ports:
+      - "9000:9000"
+      - "10000:10000"
+
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    ports:
+      - 6379:6379
+    networks:
+      - ratelimit-network
+
+  ratelimit:
+    image: envoyproxy/ratelimit:6f5de117
+    command: /bin/ratelimit
+    ports:
+      - 9080:8080
+      - 9081:8081
+      - 6070:6070
+    depends_on:
+      - redis
+    networks:
+      - ratelimit-network
+    volumes:
+      - ./examples:/data
+    environment:
+      - USE_STATSD=false
+      - LOG_LEVEL=debug
+      - REDIS_SOCKET_TYPE=tcp
+      - REDIS_URL=redis:6379
+      - RUNTIME_ROOT=/data
+      - RUNTIME_SUBDIRECTORY=ratelimit
+
+  web_service:
+    build:
+      context: .
+      dockerfile: Dockerfile-web-service
+    networks:
+      ratelimit-network:
+        aliases:
+          - web_service
+    expose:
+      - "80"
+    ports:
+      - "6080:80"
+
+networks:
+  ratelimit-network:
