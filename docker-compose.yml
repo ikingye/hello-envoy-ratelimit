@@ -1,6 +1,5 @@
 version: "3"
 services:
-
   proxy:
     build:
       context: .
@@ -45,6 +44,7 @@ services:
       - REDIS_URL=redis:6379
       - RUNTIME_ROOT=/data
       - RUNTIME_SUBDIRECTORY=ratelimit
+      - RUNTIME_WATCH_ROOT=false
 
   web_service:
     build:

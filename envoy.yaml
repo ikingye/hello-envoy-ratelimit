@@ -32,41 +32,13 @@ static_resources:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/quote" }
+                        - match: { prefix: "/" }
                           route:
-                            host_rewrite_literal: localhost
-                            cluster: service_quote
-                            prefix_rewrite: "/"
+                            cluster: service_test
                       rate_limits:
                         - actions:
-                            - header_value_match:
-                                descriptor_value: quote-path-auth
-                                expect_match: false
-                                headers:
-                                  - name: ":path"
-                                    exact_match: "/quote"
-                                  - name: "Authorization"
+                            - destination_cluster: {}
                           stage: 0
-                        - actions:
-                            - header_value_match:
-                                descriptor_value: quote-path-user-limit
-                                headers:
-                                  - name: ":path"
-                                    exact_match: "/quote"
-                            - request_headers:
-                                header_name: "Authorization"
-                                descriptor_key: auth_token
-                          stage: 1
-                        - actions:
-                            - header_value_match:
-                                descriptor_value: quote-path-vip
-                                headers:
-                                  - name: ":path"
-                                    exact_match: "/quote"
-                            - request_headers:
-                                header_name: "x-service-level"
-                                descriptor_key: service-level
-                          stage: 1
                 http_filters:
                   - name: envoy.filters.http.ratelimit
                     typed_config:
@@ -80,28 +52,16 @@ static_resources:
                         grpc_service:
                           envoy_grpc:
                             cluster_name: ratelimit
-                  - name: envoy.filters.http.ratelimit
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
-                      domain: apis
-                      stage: 1
-                      request_type: external
-                      failure_mode_deny: true
-                      rate_limit_service:
-                        transport_api_version: V3
-                        grpc_service:
-                          envoy_grpc:
-                            cluster_name: ratelimit
                   - name: envoy.filters.http.router
 
   clusters:
-    - name: service_quote
+    - name: service_test
       connect_timeout: 2s
       type: strict_dns
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: service_quote
+        cluster_name: service_test
         endpoints:
           - lb_endpoints:
               - endpoint:
